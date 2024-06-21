@@ -1,6 +1,7 @@
-<?php include 'config.php'; ?>
+<?php include 'config.php'; 
+require 'vendor/autoload.php';
 
-<?php
+
 
 function importVideos($connection) {
     if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['file'])) {

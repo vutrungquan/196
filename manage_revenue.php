@@ -1,6 +1,7 @@
-<?php include 'config.php'; ?>
+<?php include 'config.php';
+require 'vendor/autoload.php'; 
 
-<?php
+
 
 function importRevenue($connection) {
     if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['file'])) {
@@ -76,7 +77,7 @@ function exportRevenue($connection) {
       $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
       $writer->save($filePath);
       
-      header('Location: manage_pages.php');
+      header('Location: manage_revenue.php');
   } catch (Exception $e) {
       echo "Lỗi khi xuất dữ liệu: " . $e->getMessage();
   }
