@@ -1,0 +1,16 @@
+{
+    "name": "quan/206",
+    "autoload": {
+        "psr-4": {
+            "Quan\\206\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "vutrungquan206"
+        }
+    ],
+    "require": {
+        "phpoffice/phpspreadsheet": "^2.1"
+    }
+}

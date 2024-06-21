@@ -1,0 +1,143 @@
+<?php 
+include 'config.php'; 
+require 'vendor/autoload.php';
+
+
+function importPages($connection) {
+  if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['file'])) {
+      $file = $_FILES['file']['tmp_name'];
+      
+      try {
+          $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file);
+          $sheet = $spreadsheet->getActiveSheet();
+          $highestRow = $sheet->getHighestDataRow();
+
+          $stmt = $connection->prepare("INSERT INTO pages (page_title) VALUES (:page_title)");
+          
+          for ($row = 2; $row <= $highestRow; $row++) {
+              $page_title = $sheet->getCell('D'.$row)->getValue();  
+              
+              $stmt->bindParam(':page_title', $page_title);
+              $stmt->execute();
+          }
+          echo "Dữ liệu đã được thêm vào database thành công!";
+          header('Location: manage_pages.php');
+          exit();
+      } catch (Exception $e) {
+          echo "Lỗi khi nhập dữ liệu: " . $e->getMessage();
+      }
+  }
+}
+
+
+function exportPages($connection) {
+  try {
+ 
+      $filePath = 'C:\Users\Quan\Downloads\Copy of [Tháng 5][VTVxBHMedia] Thống kê các video đăng lên Facebook.xlsx';
+      $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+      $sheet = $spreadsheet->getActiveSheet();
+      $highestRow = $sheet->getHighestRow();
+      
+      $stmt = $connection->prepare("SELECT * FROM pages");
+      $stmt->execute();
+      $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+      $rowNumber = $highestRow + 1;
+      foreach ($rows as $row) {
+  
+          $sheet->setCellValue('D'.$rowNumber, $row['page_title']);
+          $rowNumber++;
+      }
+
+      $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+
+      $writer->save($filePath);
+      
+      echo "Dữ liệu đã được xuất thành công vào file $filePath";
+  } catch (Exception $e) {
+      echo "Lỗi khi xuất dữ liệu: " . $e->getMessage();
+  }
+}
+
+
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['import'])) {
+        importPages($connection);
+    }
+}
+
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    if (isset($_GET['export']) && $_GET['export'] == 'true') {
+        exportPages($connection);
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý Page</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Menu</h2>
+    <a href="index.php">Trang chủ</a>
+    <a href="manage_videos.php">Quản lý Video</a>
+    <a href="manage_pages.php">Quản lý Page</a>
+    <a href="manage_revenue.php">Quản lý Doanh Thu</a>
+  </div>
+  <div class="main-content">
+    <div class="navbar">
+      <h1>Quản lý Page</h1>
+    </div>
+    <div class="content">
+      <div class="table-controls">
+        <button class="cach" onclick="location.href='add_page.php'">Thêm mới</button>
+        <form method="POST" enctype="multipart/form-data" id="importForm">
+          <input type="file" name="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
+          <button class="cach" type="button" onclick="document.getElementById('fileInput').click();">Nhập</button>
+          <input type="submit" name="import" style="display: none;">
+        </form>
+        <a href="?export=true"><button class="cach">Xuất</button></a>
+      </div>
+      <table>
+        <tr>
+          <th>Page</th>
+          <th>ID</th>
+          <th>Hành động</th>
+        </tr>
+        <?php
+        try {
+            $stmt = $connection->prepare("SELECT * FROM pages");
+            $stmt->execute();
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)):
+        ?>
+        <tr>
+          <td><?php echo htmlspecialchars($row['page_title']); ?></td>
+          <td><?php echo htmlspecialchars($row['id_page']); ?></td>
+          <td>
+            <a href="view_page.php?id=<?php echo htmlspecialchars($row['id_page']); ?>">Xem</a> |
+            <a href="edit_page.php?id=<?php echo htmlspecialchars($row['id_page']); ?>">Chỉnh sửa</a> |
+            <a href="delete_page.php?id=<?php echo htmlspecialchars($row['id_page']); ?>" onclick="return confirm('Bạn có chắc chắn muốn xóa page này?')">Xóa</a>
+          </td>
+        </tr>
+        <?php 
+            endwhile; 
+        } catch (PDOException $e) {
+            echo "Lỗi: " . $e->getMessage();
+        }
+        ?>
+      </table>
+    </div>
+  </div>
+  
+  <script>
+    document.getElementById('fileInput').addEventListener('change', function() {
+        document.getElementById('importForm').submit();
+    });
+  </script>
+</body>
+</html>
