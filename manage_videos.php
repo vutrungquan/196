@@ -35,45 +35,40 @@ function importVideos($connection) {
 
 
 function exportVideos($connection) {
-    try {
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        
+  try {
+      $filePath = 'C:/Users/Quan/Downloads/Copy of [Tháng 5][VTVxBHMedia] Thống kê các video đăng lên Facebook.xlsx';
 
-        $sheet->setCellValue('A1', 'ID');
-        $sheet->setCellValue('B1', 'Video Title');
-        $sheet->setCellValue('C1', 'Page ID');
-        $sheet->setCellValue('D1', 'Published Date');
-        
-        $stmt = $connection->prepare("
-            SELECT videos.id_video, videos.title_video, videos.id_page, videos.published_date
-            FROM videos
-        ");
-        $stmt->execute();
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        $rowNumber = 2;
-        foreach ($rows as $row) {
-            $sheet->setCellValue('A'.$rowNumber, $row['id_video']);
-            $sheet->setCellValue('B'.$rowNumber, $row['title_video']);
-            $sheet->setCellValue('C'.$rowNumber, $row['id_page']);
-            $sheet->setCellValue('D'.$rowNumber, $row['published_date']);
-            $rowNumber++;
-        }
-        
-        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
-        $filename = 'videos_export.xlsx';
-        
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="'. urlencode($filename) .'"');
-        
-        $writer->save('php://output');
-        exit();
-    } catch (Exception $e) {
-        echo "Lỗi khi xuất dữ liệu: " . $e->getMessage();
-    }
+      if (!file_exists($filePath)) {
+          throw new Exception("File không tồn tại tại đường dẫn $filePath");
+      }
+      
+      $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+      $sheet = $spreadsheet->getActiveSheet();
+      $highestRow = $sheet->getHighestRow();
+      
+      $stmt = $connection->prepare("
+          SELECT id_video, title_video, id_page, published_date
+          FROM videos
+      ");
+      $stmt->execute();
+      $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+      $rowNumber = $highestRow + 1;
+      foreach ($rows as $row) {
+          $sheet->setCellValue('B'.$rowNumber, $row['id_video']);
+          $sheet->setCellValue('C'.$rowNumber, $row['title_video']);
+          $sheet->setCellValue('E'.$rowNumber, $row['published_date']);
+          $rowNumber++;
+      }
+
+      $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+      $writer->save($filePath);
+      
+      header('Location: manage_pages.php');
+  } catch (Exception $e) {
+      echo "Lỗi khi xuất dữ liệu: " . $e->getMessage();
+  }
 }
-
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['import'])) {

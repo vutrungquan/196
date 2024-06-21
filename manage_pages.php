@@ -20,7 +20,6 @@ function importPages($connection) {
               $stmt->bindParam(':page_title', $page_title);
               $stmt->execute();
           }
-          echo "Dữ liệu đã được thêm vào database thành công!";
           header('Location: manage_pages.php');
           exit();
       } catch (Exception $e) {
@@ -32,8 +31,12 @@ function importPages($connection) {
 
 function exportPages($connection) {
   try {
- 
-      $filePath = 'C:\Users\Quan\Downloads\Copy of [Tháng 5][VTVxBHMedia] Thống kê các video đăng lên Facebook.xlsx';
+      $filePath = 'C:/Users/Quan/Downloads/Copy of [Tháng 5][VTVxBHMedia] Thống kê các video đăng lên Facebook.xlsx';
+
+      if (!file_exists($filePath)) {
+          throw new Exception("File không tồn tại tại đường dẫn $filePath");
+      }
+      
       $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
       $sheet = $spreadsheet->getActiveSheet();
       $highestRow = $sheet->getHighestRow();
@@ -44,21 +47,18 @@ function exportPages($connection) {
 
       $rowNumber = $highestRow + 1;
       foreach ($rows as $row) {
-  
           $sheet->setCellValue('D'.$rowNumber, $row['page_title']);
           $rowNumber++;
       }
 
       $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
-
       $writer->save($filePath);
       
-      echo "Dữ liệu đã được xuất thành công vào file $filePath";
+      header('Location: manage_pages.php');
   } catch (Exception $e) {
       echo "Lỗi khi xuất dữ liệu: " . $e->getMessage();
   }
 }
-
 
 if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['import'])) {
